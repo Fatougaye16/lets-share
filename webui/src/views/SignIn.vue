@@ -10,26 +10,38 @@
     </div>
     <div class="border p-16 rounded-md shadow-xl">
       <h1 class="text-center text-4xl mb-6 text-amber-950">Sign In</h1>
-      <form action="submit" method="post" class="mt-4">
-        <label>
-          Email
-          <input
-            type="email"
-            placeholder="daisy@site.com"
-            class="input input-bordered flex items-center gap-2 mb-6 grow" v-model="email"
-          />
-        </label>
-        <label> Password </label>
+      <form @submit.prevent="onSubmit" class="mt-4" novalidate>
+        <label for="email" class="block mb-2">Email</label>
         <input
-          class="input input-bordered flex items-center gap-2 mb-8"
+          id="email"
+          type="email"
+          placeholder="daisy@site.com"
+          class="input input-bordered flex items-center gap-2 mb-4 grow"
+          v-model="email"
+          required
+          autocomplete="username"
+          :aria-invalid="!!error"
+          autofocus
+        />
+
+        <label for="password" class="block mb-2">Password</label>
+        <input
+          id="password"
+          class="input input-bordered flex items-center gap-2 mb-4"
           type="password"
           placeholder="password" v-model="password"
+          required
+          autocomplete="current-password"
         />
+
+        <p v-if="error" class="text-sm text-red-600 mb-4">{{ error }}</p>
+
+        <button type="submit" :disabled="loading" class="btn btn-block bg-amber-950 text-white text-2xl rounded-md mb-2">
+          <span v-if="!loading">Sign In</span>
+          <span v-else>Signing in...</span>
+        </button>
       </form>
-      <button class="btn btn-block bg-amber-950 text-white text-2xl rounded-md mb-2" @click="loginUser(email, password)">Sign In</button>
-      <RouterLink to="/dashboard">
-      </RouterLink>
-      <p>don't have an account? <RouterLink to="/signup" class="link">sign up</RouterLink></p>
+      <p class="mt-4">Don't have an account? <RouterLink to="/signup" class="link">sign up</RouterLink></p>
     </div>
   </div>
 </template>
@@ -42,22 +54,35 @@ import { useRouter } from 'vue-router'
 
 const email = ref("")
 const password = ref("")
+const error = ref("")
+const loading = ref(false)
 const userStore = useUserStore()
 const router = useRouter()
 
-const loginUser = async (email, password) => {
+const loginUser = async () => {
+  loading.value = true
+  error.value = ''
   try {
-    const response = await instance.post('User/login', { email, password });
+    const response = await instance.post('User/login', { email: email.value, password: password.value });
     const userData = response.data;
 
     userStore.setUser(userData);
     userStore.setAccessToken(userData.token)
 
-    console.log('User logged in:', userData.token);
-
     router.push('/dashboard');
-  } catch (error) {
-    console.error('Error logging in:', error);
+  } catch (err) {
+    error.value = err?.response?.data?.message || 'Login failed. Check credentials.'
+    console.error('Error logging in:', err);
+  } finally {
+    loading.value = false
   }
 };
+
+const onSubmit = () => {
+  if (!email.value || !password.value) {
+    error.value = 'Please provide email and password.'
+    return
+  }
+  loginUser()
+}
 </script>

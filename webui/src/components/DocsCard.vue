@@ -1,8 +1,8 @@
 <template>
   <div class="max-w-sm p-6 bg-white border border-gray-200 rounded-lg shadow">
 
-    <div>
-      <img :src="doc" alt="">
+    <div class="h-28 w-full overflow-hidden rounded">
+      <img :src="previewSrc" alt="document preview" class="w-full h-full object-cover" />
     </div>
 
     <div class=" border border-dashed border-amber-950 p-5 mt-6 rounded-lg">
@@ -22,12 +22,38 @@
   </div>
 </template>
 
-<script setup>
-import { defineProps } from 'vue';
+  <script setup>
+import { defineProps, ref, onMounted, watch, computed } from 'vue';
+import instance from '../api/agent.ts';
 import doc from '../assets/images/doc.webp';
-const props = defineProps({
-  file: Object
-})
+import { useUserStore } from '../stores/user'
+const props = defineProps({ file: Object })
+
+const userStore = useUserStore()
+const token = computed(() => userStore.token)
+
+const previewSrc = ref(doc)
+
+const loadPreview = async () => {
+  const ft = props.file?.fileType || ''
+  if (ft.toLowerCase().startsWith('image') && props.file?.id) {
+    try {
+      const headers = token.value ? { Authorization: `Bearer ${token.value}` } : {}
+      const response = await instance.get(`/download/${props.file.id}`, { responseType: 'blob', headers })
+      const url = window.URL.createObjectURL(response.data)
+      previewSrc.value = url
+    } catch (err) {
+      previewSrc.value = doc
+      console.error('Preview fetch failed', err)
+    }
+  } else {
+    previewSrc.value = doc
+  }
+}
+
+onMounted(loadPreview)
+watch(() => props.file?.id, loadPreview)
+watch(token, loadPreview)
 
 </script>
 

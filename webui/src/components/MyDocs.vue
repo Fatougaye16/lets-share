@@ -6,7 +6,7 @@
     <div class="flex justify-between">
       <div>
         <label class="input input-bordered flex items-center gap-2 mb-12">
-          <input type="text" class="grow" placeholder="Search" />
+          <input type="text" class="grow" placeholder="Search" v-model="searchTerm" aria-label="Search documents" />
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="h-4 w-4 opacity-70">
             <path fill-rule="evenodd"
               d="M9.965 11.026a5 5 0 1 1 1.06-1.06l2.755 2.754a.75.75 0 1 1-1.06 1.06l-2.755-2.754ZM10.5 7a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Z"
@@ -16,11 +16,11 @@
       </div>
 
       <div>
-        <button class="btn bg-amber-950 text-white w-64 rounded-lg" onclick="my_modal_1.showModal()">
-          <i class="bi bi-upload"></i>
-          Upload file
+        <button class="btn bg-amber-950 text-white w-64 rounded-lg" @click="openDialog">
+          <i class="bi bi-upload" aria-hidden="true"></i>
+          <span class="ms-2">Upload file</span>
         </button>
-        <dialog id="my_modal_1" class="modal">
+        <dialog ref="dialogRef" class="modal" id="my_modal_1">
           <div class="modal-box">
             <h3 class="text-lg font-bold ">New document</h3>
             <hr />
@@ -39,7 +39,7 @@
             </div>
             <div class="modal-action">
               <form method="dialog">
-                <button class="btn w-40 rounded-md text-amber-950">Cancel</button>
+                <button class="btn w-40 rounded-md text-amber-950" @click.prevent="closeDialog">Cancel</button>
               </form>
               <button class="btn w-40 rounded-md bg-amber-950 text-white" @click="uploadFile">Upload</button>
             </div>
@@ -48,13 +48,10 @@
       </div>
     </div>
     <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-      <div v-for="file in user?.uploads" :key="file.id">
-        <Card :file="file" />
-      <div v-for="file in user?.uploads" :key="file.id">
+      <div v-for="file in filteredUploads" :key="file.id">
         <Card :file="file" />
       </div>
     </div>
-  </div>
   </div>
 </template>
 <script setup>
@@ -66,10 +63,20 @@ import instance from '../api/agent.ts'
 const userStore = useUserStore()
 const user = computed(() => userStore.user)
 const file = ref(null)
+const dialogRef = ref(null)
+const searchTerm = ref('')
 
-var token = computed(() => userStore.token)
+const token = computed(() => userStore.token)
 const handleFileUpload = (event) => {
   file.value = event.target.files[0]
+}
+
+const openDialog = () => {
+  dialogRef.value?.showModal()
+}
+
+const closeDialog = () => {
+  dialogRef.value?.close()
 }
 
 const uploadFile = async () => {
@@ -86,6 +93,7 @@ const uploadFile = async () => {
       });
       console.log('File uploaded successfully:', file.value);
       file.value = null;
+      closeDialog()
     } catch (error) {
       console.error('Error uploading file:', error);
     }
@@ -93,4 +101,10 @@ const uploadFile = async () => {
     console.log('No file selected');
   }
 }
+
+const filteredUploads = computed(() => {
+  if (!user.value?.uploads) return []
+  if (!searchTerm.value) return user.value.uploads
+  return user.value.uploads.filter(f => f.fileName.toLowerCase().includes(searchTerm.value.toLowerCase()))
+})
 </script>

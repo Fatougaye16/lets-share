@@ -1,11 +1,9 @@
 <template>
-  <div class="flex h-screen overflow-hidden">
-    <div class="h-full overflow-y-auto w-1/4">
-      <SideNav />
-    </div>
-    <div class="h-full overflow-y-auto flex-1">
+  <div class="h-screen overflow-hidden">
+    <SideNav />
+    <main class="h-full overflow-y-auto" :style="{ paddingLeft: 'calc(var(--sidebar-left, 256px) + 1rem)', transition: 'padding-left 200ms ease' }">
       <RouterView />
-    </div>
+    </main>
   </div>
 </template>
 
